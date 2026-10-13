@@ -10,10 +10,10 @@ Agreed on Day 1, from §1.4 of the brief. These are what the project is measured
 
 | #   | Target                                                                          | Status                                                               |
 | --- | ------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| 1   | The stored factors are **much smaller** than the full matrix — aim for ≥ 20×    | ◐ matrix is 30× smaller (136.2 MB → 4.5 MB); factor size pending ML2 |
-| 2   | The nightly job (fit + score every product) runs in **under 60 seconds**        | ⬜ ML4                                                               |
-| 3   | **Hit rate @ 10 beats the best-seller baseline** on held-out purchases (R3)     | ⬜ ML4                                                               |
-| 4   | The customer map yields **3–6 groups marketing can name** (R4: no customer IDs) | ⬜ ML6                                                               |
+| 1 | The stored factors are **much smaller** than the full matrix — aim for ≥ 20× | ✅ 136.2 MB dense → 6.7 MB of factors (**20×**) |
+| 2 | The nightly job (fit + score every product) runs in **under 60 seconds** | ✅ **0.4 s** — fit plus the full 3,273 × 10 similarity table |
+| 3 | **Hit rate @ 10 beats the best-seller baseline** on held-out purchases (R3) | ✅ but thin — **28.62%** against **27.00%** (1.06×) |
+| 4 | The customer map yields **3–6 groups marketing can name** (R4: no customer IDs) | ✅ **6 named segments**, though they cut a continuum (see caveat) |
 
 ## Team
 
@@ -22,7 +22,8 @@ Agreed on Day 1, from §1.4 of the brief. These are what the project is measured
 | Data Engineer | Alex Katzman | DE1–DE6 — raw data, cleaning, split, matrix                        |
 | ML Engineer   | Adrien Mery  | ML1–ML7 — method choice, recommendations, evaluation, customer map |
 
-Joint: J1 targets (above), J2 memo, J3 slides. Contribution log (C2): `CONTRIBUTIONS.md`.
+Joint: J1 targets (above), J2 memo, J3 slides. Working as a pair also needs a signed
+contribution log (C2) and a private peer evaluation (C3); working alone, neither applies.
 
 ## Data (Step 0)
 
@@ -38,11 +39,13 @@ The raw file is **not committed** (`data/` is gitignored). Put it at
 
 ```bash
 pip install -r requirements.txt
-jupyter nbconvert --to notebook --execute --inplace build_matrix.ipynb   # ~30 s
+jupyter nbconvert --to notebook --execute --inplace build_matrix.ipynb   # ~30 s, rebuilds the matrix
+jupyter nbconvert --to notebook --execute --inplace model.ipynb          # ~25 s, fits and evaluates
 ```
 
-Or just open `build_matrix.ipynb` and run it top to bottom. It rebuilds every output below
-from the raw file in one pass (R6). Seed is fixed at 42 throughout.
+Or open the two notebooks and run them top to bottom, in that order. `build_matrix.ipynb` rebuilds
+every output below from the raw file in one pass (R6); `model.ipynb` reads only `data/processed/`
+and never touches the raw file. Seed is fixed at 42 throughout.
 
 | Output                                | What it is                                                  |
 | ------------------------------------- | ----------------------------------------------------------- |
@@ -50,6 +53,8 @@ from the raw file in one pass (R6). Seed is fixed at 42 throughout.
 | `data/processed/customer_index.csv`   | matrix row → AnonID                                         |
 | `data/processed/product_index.csv`    | matrix column → ProductCode                                 |
 | `data/processed/test_holdout.csv`     | held-out `(customer_row, product_col)` pairs for evaluation |
+| `data/processed/val_matrix.npz` | inner training matrix, for choosing k without touching the test set |
+| `data/processed/val_holdout.csv` | validation pairs from the last 2 months of the *training* period |
 | `data/processed/product_names.csv`    | ProductCode → Description, for naming segments (ML6)        |
 | `data/processed/customer_country.csv` | matrix row → Country, for naming segments (ML6)             |
 
@@ -79,7 +84,28 @@ bought by ≥ 10 customers (3,762 → 3,273).
 | dense (float64) | 136.2 MB                         |
 | sparse (CSR)    | 4.5 MB — **30× smaller**         |
 
-Every cleaning and modelling decision is written down with its reason in the notebook (R1).
+**Model (ML1–ML7).** Truncated SVD at k = 100 on `log1p(net purchase occasions)`. k was chosen on a
+**second time split** — the last two months of the *training* period, held out under the same
+"products never bought before" rule — so the test set was opened exactly once, in ML4.
+
+| | Truncated SVD | PCA (same k, same matrix) | Best-seller baseline |
+| --- | --- | --- | --- |
+| Hit rate @ 10 | **28.62%** | 27.52% | 27.00% |
+| Fit time | 0.27 s | 0.38 s | — |
+| Peak memory | 94 MB | 45 MB | — |
+| What is lost | 69.6% relative reconstruction error | 49.3% of variance kept | — |
+
+Six segments, named from their products and countries: *Occasional small baskets* (28%),
+*Hearts and t-lights* (20%), *Children's jigsaws and stationery* (18%), *Jumbo bag wholesalers*
+(14%), *Party paper goods and baking* (12%), *Regency tableware* (8%). Figure in
+`figures/customer_map.png`.
+
+**Two caveats that belong in the memo.** The margin over best-sellers is real but thin — GiftLane's
+shops reorder staples, so "what everyone buys" is a genuinely strong guess. And the six segments cut
+a continuum rather than finding natural types: every silhouette score is near zero. They are good
+enough to plan six campaigns, not a claim about how the customer base really divides.
+
+Every cleaning and modelling decision is written down with its reason in the notebooks (R1).
 
 ## Privacy (R4)
 
@@ -92,7 +118,8 @@ segment names or anonymised indices only.
 ```
 build_matrix.ipynb      DE1–DE5: profile, clean, split, build the matrix
 model.ipynb             ML1–ML7: method choice, recommendations, evaluation, customer map
-                        (not created yet — owned by the ML Engineer)
+figures/                k_curve.png, customer_map.png
+reports/                ML2 k curve, ML5 comparison table, ML6 segments, ML7 sensitivity
 requirements.txt        pinned versions
 data/raw/               the Excel file (gitignored — download it yourself)
 data/processed/         rebuilt by build_matrix.ipynb (gitignored)

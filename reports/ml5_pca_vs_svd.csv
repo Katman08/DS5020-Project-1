@@ -1,0 +1,9 @@
+Measure,PCA,Truncated SVD
+k used,100,100
+Fit time (seconds),0.43,0.27
+Peak memory during fit (MB),49,102
+Size of stored factors (MB),6.7,6.7
+Variance explained or relative reconstruction error,49.3% of variance explained,69.6% relative reconstruction error
+Hit rate at 10 on held-out purchases,27.52%,28.62%
+Best-seller baseline hit rate at 10,27.00%,27.00%
+"What component 1 represents, in words",deviation from the average basket (corr with total spend +0.98),"overall volume, how much a shop buys (corr with total spend +0.98)"

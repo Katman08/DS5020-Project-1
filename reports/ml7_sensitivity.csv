@@ -1,0 +1,4 @@
+purchase value,hit rate @ 10,vs baseline
+log(1 + count),28.62%,1.06x
+raw count,28.83%,1.07x
+1/0 ever bought,25.69%,0.95x
