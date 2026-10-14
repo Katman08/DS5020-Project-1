@@ -22,8 +22,7 @@ Agreed on Day 1, from §1.4 of the brief. These are what the project is measured
 | Data Engineer | Alex Katzman | DE1–DE6 — raw data, cleaning, split, matrix                        |
 | ML Engineer   | Adrien Mery  | ML1–ML7 — method choice, recommendations, evaluation, customer map |
 
-Joint: J1 targets (above), J2 memo, J3 slides. Working as a pair also needs a signed
-contribution log (C2) and a private peer evaluation (C3); working alone, neither applies.
+Joint: J1 targets (above), J2 memo.
 
 ## Data (Step 0)
 
